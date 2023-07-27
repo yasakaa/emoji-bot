@@ -1,11 +1,9 @@
 {
-  "name": "reaction-response",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "emoji-bot",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "author": "@camilla_ett",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.4.5",
     "@types/ws": "^8.5.5",
