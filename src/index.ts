@@ -9,7 +9,7 @@ const host = process.env.HOST_NAME
 const token = process.env.API_TOKEN
 
 // 実際にノートを投稿するかどうか。true ならノートを投稿しない。
-// 初回起動時など、大量のノートを送信する可能性がある場合はtrue にしたほうが良い
+// 初回起動時など、大量のノートを送信する可能性がある場合はtrueにしたほうが良い
 const isDryRun = process.env.IS_DRY_RUN
 
 // 何秒に１度ポーリングを実行するか
@@ -61,7 +61,6 @@ async function pullEmojis() {
     let untilId = null
     do {
         let params
-        console.log(untilId)
         if (untilId) {
             params = {
                 i: token,
@@ -87,7 +86,6 @@ async function pullEmojis() {
             console.log(error)
         })
     } while(response_count != 0 && new_reactions.length >= response_count);
-    console.log(new_reactions)
 
     new_reactions.forEach (reaction => {
         const params = {
