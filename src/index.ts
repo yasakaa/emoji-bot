@@ -8,7 +8,8 @@ const host = process.env.HOST_NAME
 // BOTアカウントのAPI token。ノートの投稿の権限さえあればOK
 const token = process.env.API_TOKEN
 
-// 実際にノートを投稿するかどうか。true ならノートを投稿しない
+// 実際にノートを投稿するかどうか。true ならノートを投稿しない。
+// 初回起動時など、大量のノートを送信する可能性がある場合はtrue にしたほうが良い
 const isDryRun = process.env.IS_DRY_RUN
 
 // 何秒に１度ポーリングを実行するか
