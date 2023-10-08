@@ -10,10 +10,10 @@ const token = process.env.API_TOKEN
 
 // 実際にノートを投稿するかどうか。true ならノートを投稿しない。
 // 初回起動時など、大量のノートを送信する可能性がある場合はtrueにしたほうが良い
-const isDryRun = process.env.IS_DRY_RUN
+const isDryRun: boolean = JSON.parse(process.env.IS_DRY_RUN?.toString() ?? "true") as boolean
 
 // 何秒に１度ポーリングを実行するか
-const intervals = process.env.INTERVALS
+const intervals: number = parseInt(process.env.INTERVALS ?? "60")
 
 // 一度に受け取る絵文字の数(APIのデフォルト)
 const limit = 30
@@ -90,15 +90,21 @@ async function pullEmojis() {
     new_reactions.forEach (reaction => {
         const params = {
             i: token,
-            text: `新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}:`,
+            text: `新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}: \n\n【カテゴリー】\n${reaction.category}\n\n【ライセンス】\n${reaction.license}`,
         }
-        api.post('/notes/create', params).then (response => {
-            if(response.status == 200) {
-                console.log(green + params.text+ reset)
-            }
-        }).catch( error => {
-            console.log(error)
-        })
+        if(isDryRun) {
+            console.log("isDryRun=true のため投稿しません")
+            console.log(yellow + params.text+ reset)
+        }
+        else {
+            api.post('/notes/create', params).then (response => {
+                if(response.status == 200) {
+                    console.log(green + params.text+ reset)
+                }
+            }).catch( error => {
+                console.log(error)
+            })
+        }
     })
 
     // db に追加して、ローカルのjsonファイルに書き出し
@@ -108,7 +114,7 @@ async function pullEmojis() {
 }
 
 let interval_ms
-if(!intervals || Number.isNaN((interval_ms = parseInt(intervals) * 1000))) 
+if(!intervals || Number.isNaN((interval_ms = intervals * 1000))) 
 {  
     // デフォルトは60秒に1回ポーリング
     interval_ms = 60 * 1000
