@@ -90,7 +90,7 @@ async function pullEmojis() {
     new_reactions.forEach (reaction => {
         const params = {
             i: token,
-            text: `新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}: \n\n【カテゴリー】\n${reaction.category}\n\n【ライセンス】\n${reaction.license}`,
+            text: `新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}: \n\n【カテゴリー】\n\`${reaction.category}\`\n\n【ライセンス】\n\`${reaction.license}\``,
         }
         if(isDryRun) {
             console.log("isDryRun=true のため投稿しません")
