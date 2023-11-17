@@ -18,6 +18,8 @@ const intervals: number = parseInt(process.env.INTERVALS ?? "60")
 // 一度に受け取る絵文字の数(APIのデフォルト)
 const limit = 30
 
+const dbfilename = "moderation.json"
+
 // green と reset 以外使ってない
 const red     = '\u001b[31m'
 const green   = '\u001b[32m'
@@ -28,7 +30,7 @@ const reset   = '\u001b[0m'
 
 // 将来的にDBに持たせたりしたほうが良いけど、今は雑に手元のローカルに保存すればよし
 // 定期的に admin/emoji/list を見に行って、ローカルのDBにコピーしていくスタイル
-let emojidb: Reaction[] = []
+let emojidb: CustomEmoji[] = []
 
 const api = axios.create({
     baseURL: `https://${host}/api/`,
@@ -37,7 +39,7 @@ const api = axios.create({
     } 
 })
 
-interface Reaction {
+interface CustomEmoji {
     id: string,
     aliases: string[],
     name: string,
@@ -50,15 +52,42 @@ interface Reaction {
     roleIdsThatCanBeUsedThisEmojiAsReaction: string[]
 }
 
-// 起動時にemojidb を読み込み
-if (fs.existsSync("emojidb.json")) {
-    emojidb = JSON.parse(fs.readFileSync("emojidb.json", 'utf8')) as Reaction[]
+interface AvatorDecoration {
+    id: string,
+    url: string,
+    name: string,
+    description: string,
+    updatedAt: string
 }
 
-async function pullEmojis() {
-    let new_reactions: Reaction[] = []
-    let response_count = 0
+// モデレーションログ
+interface ModerationLog {
+    id: string,
+    createdAt: string, // Dateでいけたっけ
+    type: string,
+    info: any,
+    userId: string, // なんでuserとuseridがあるんですかねぇ
+    user: any, // userを作る必要がある
+}
+
+// 起動時に最後のモデレーションログを読み込み。
+// 存在しなければ、現在時刻を返す
+let lastModified: Date
+if (fs.existsSync(dbfilename)) {
+    let lastModetationLog: ModerationLog
+    lastModetationLog = JSON.parse(fs.readFileSync(dbfilename, 'utf8')) as ModerationLog
+    lastModified= new Date(lastModetationLog.createdAt)
+} else {
+    lastModified = new Date()
+}
+
+let moderationLogs: ModerationLog[] = []
+
+async function pullModerationLogs() {
+    let newModerationLogs: ModerationLog[] = []
+    let newLastModified: Date = new Date() // 命名もうちょっとどうにかならんか…？
     let untilId = null
+
     do {
         let params
         if (untilId) {
@@ -75,42 +104,44 @@ async function pullEmojis() {
                 query: null,
             }
         }
-        await api.post('/admin/emoji/list', params).then (response => {
+        await api.post('/admin/show-moderation-logs', params).then (response => {
             if(response.status == 200) {
-                const reactions = JSON.parse(JSON.stringify(response.data)) as Reaction[]
-                response_count = reactions.length
-                new_reactions = new_reactions.concat(reactions.filter(reaction => !emojidb.find(e => e.id == reaction.id)));
-                untilId = reactions.pop()?.id
+                const moderationLogs = JSON.parse(JSON.stringify(response.data)) as ModerationLog[]
+                untilId = moderationLogs.pop()?.id
+                // nullとか知らん
+                newLastModified = new Date(moderationLogs.pop()?.createdAt!)
+                newModerationLogs = newModerationLogs.concat(moderationLogs)
             }
         }).catch( error => {
             console.log(error)
         })
-    } while(response_count != 0 && new_reactions.length >= response_count);
+    } while(newLastModified > lastModified);
 
-    new_reactions.forEach (reaction => {
-        const params = {
-            i: token,
-            text: `新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}: \n\n【カテゴリー】\n\`${reaction.category}\`\n\n【ライセンス】\n\`${reaction.license}\``,
-        }
-        if(isDryRun) {
-            console.log("isDryRun=true のため投稿しません")
-            console.log(yellow + params.text+ reset)
-        }
-        else {
-            api.post('/notes/create', params).then (response => {
-                if(response.status == 200) {
-                    console.log(green + params.text+ reset)
-                }
-            }).catch( error => {
-                console.log(error)
-            })
+    // 新しいのだけに絞る
+    newModerationLogs = newModerationLogs.filter(l => new Date(l.createdAt) > lastModified)
+
+    newModerationLogs.forEach( moderationLog => {
+        switch(moderationLog.type) {
+            case "addCustomEmoji":
+                const reaction = moderationLog.info.emoji as CustomEmoji
+                createNote(`新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}: \n\n【カテゴリー】\n\`${reaction.category}\`\n\n【ライセンス】\n\`${reaction.license}\`\n\n追加した人：@${moderationLog.user.username}`)
+                break
+            case "createAvatarDecoration":
+                const deco = moderationLog.info.avatarDecoration as AvatorDecoration 
+                createNote(`新しいデコレーションが追加されたかも!\n\`${deco.name}\` => ${deco.url} \n\n追加した人：@${moderationLog.user.username}`)
+                break
+            default:
+                console.log("その他なんか:" + moderationLog)
+                break
         }
     })
 
-    // db に追加して、ローカルのjsonファイルに書き出し
-    emojidb = emojidb.concat(new_reactions)
+    // 最終更新日を記録して、ローカルのjsonファイルに書き出し
+    if(newModerationLogs[0]) {
+        fs.writeFileSync(dbfilename, JSON.stringify(newModerationLogs[0]))
+        lastModified = new Date(newModerationLogs[0].createdAt)
+    }
 
-    fs.writeFileSync("emojidb.json", JSON.stringify(emojidb))
 }
 
 let interval_ms
@@ -121,6 +152,26 @@ if(!intervals || Number.isNaN((interval_ms = intervals * 1000)))
 }
 
 // Promise を使って、もうちょっとちゃんと綺麗に実装してどうぞ
-setInterval( pullEmojis,  interval_ms)
+setInterval( pullModerationLogs,  interval_ms)
 
 
+async function createNote(message: string) {
+    const params = {
+        i: token,
+        text: message,
+        localOnly: true, // 連合無しに
+    }
+    if(isDryRun) {
+        console.log("isDryRun=true のため投稿しません")
+        console.log(yellow + params.text+ reset)
+    }
+    else {
+        api.post('/notes/create', params).then (response => {
+            if(response.status == 200) {
+                console.log(green + params.text+ reset)
+            }
+        }).catch( error => {
+            console.log(error)
+        })
+    }
+}
