@@ -123,12 +123,28 @@ async function pullModerationLogs() {
     newModerationLogs.forEach( moderationLog => {
         switch(moderationLog.type) {
             case "addCustomEmoji":
-                const reaction = moderationLog.info.emoji as CustomEmoji
-                createNote(`新しい絵文字が追加されたかも!\n\`:${reaction.name}:\` => :${reaction.name}: \n\n【カテゴリー】\n\`${reaction.category}\`\n\n【ライセンス】\n\`${reaction.license}\`\n\n追加した人：@${moderationLog.user.username}`)
+                const emoji = moderationLog.info.emoji as CustomEmoji
+                createNote(`新しい絵文字が追加されたかも!\n\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${moderationLog.user.username}`)
+                break
+            case "updateCustomEmoji":
+                const after = moderationLog.info.after as CustomEmoji
+                createNote(`絵文字が更新されたかも!\n\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${moderationLog.user.username}`)
+                break
+            case "deleteCustomEmoji":
+                const deleted_emoji = moderationLog.info.emoji as CustomEmoji
+                createNote(`カスタム絵文字が削除されたみたい…\n\`:${deleted_emoji.name}:\` \n\n削除した人：@${moderationLog.user.username}`)
                 break
             case "createAvatarDecoration":
                 const deco = moderationLog.info.avatarDecoration as AvatorDecoration 
                 createNote(`新しいデコレーションが追加されたかも!\n\`${deco.name}\` => ${deco.url} \n\n追加した人：@${moderationLog.user.username}`)
+                break
+            case "updateAvatarDecoration":
+                const afterd = moderationLog.info.after as AvatorDecoration 
+                createNote(`デコレーションが更新されたかも!\n\`${afterd.name}\` => ${afterd.url} \n\n更新した人：@${moderationLog.user.username}`)
+                break
+            case "deleteAvatarDecoration":
+                const deleted = moderationLog.info.avatarDecoration as AvatorDecoration 
+                createNote(`デコレーションが削除されたみたい…\n\`${deleted.name}\` \n\n更新した人：@${moderationLog.user.username}`)
                 break
             default:
                 console.log("その他なんか:" + moderationLog)
@@ -155,10 +171,11 @@ if(!intervals || Number.isNaN((interval_ms = intervals * 1000)))
 setInterval( pullModerationLogs,  interval_ms)
 
 
-async function createNote(message: string) {
+async function createNote(message: string, visibility: string = "public") {
     const params = {
         i: token,
         text: message,
+        visibility: visibility, // public or home
         localOnly: true, // 連合無しに
     }
     if(isDryRun) {
