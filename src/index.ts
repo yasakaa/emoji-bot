@@ -1,6 +1,15 @@
 import axios from 'axios'
 import * as fs from 'fs'
 import 'dotenv/config'
+import sharp from 'sharp'
+
+/*
+import {
+    S3Client,
+    PutObjectCommand,
+    DeleteObjectCommand
+  } from '@aws-sdk/client-s3';
+*/
 
 // 対象のホスト名 - 例：misskey.io / kasei.ski 等
 const host = process.env.HOST_NAME
@@ -19,6 +28,8 @@ const intervals: number = parseInt(process.env.INTERVALS ?? "60")
 const limit = 30
 
 const dbfilename = "moderation.json"
+
+const tmp_directory = "tmp"
 
 // green と reset 以外使ってない
 const red     = '\u001b[31m'
@@ -45,7 +56,8 @@ interface CustomEmoji {
     name: string,
     category: string,
     host: string,
-    url: string,
+    publicUrl: string,
+    originalUrl: string,
     license: string,
     isSensitive: boolean,
     localOnly: boolean,
@@ -83,6 +95,16 @@ if (fs.existsSync(dbfilename)) {
 
 let moderationLogs: ModerationLog[] = []
 
+/*
+const r2 = new S3Client({
+    region: r2_region,
+    endpoint: r2_endpoint,
+    credentials: {
+      accessKeyId: access_key_id,
+      secretAccessKey: secret_accees_key,
+    },
+  });
+*/
 async function pullModerationLogs() {
     let newModerationLogs: ModerationLog[] = []
     let newLastModified: Date = new Date() // 命名もうちょっとどうにかならんか…？
@@ -124,15 +146,27 @@ async function pullModerationLogs() {
         switch(moderationLog.type) {
             case "addCustomEmoji":
                 const emoji = moderationLog.info.emoji as CustomEmoji
-                createNote(`新しい絵文字が追加されたかも!\n\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${moderationLog.user.username}`)
+                if(moderationLog.user.username != "emoji_bot") {
+                    resendToAssets(emoji);
+                    createNote(`新しい絵文字が追加されたかも!\n\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${moderationLog.user.username}`)
+                }
                 break
             case "updateCustomEmoji":
                 const after = moderationLog.info.after as CustomEmoji
-                createNote(`絵文字が更新されたかも!\n\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${moderationLog.user.username}`)
+                const before = moderationLog.info.before as CustomEmoji
+                if(moderationLog.user.username != "emoji_bot") {
+                    // publicUrlが変わってたらカスタム絵文字も再生成
+                    if(after.publicUrl != before.publicUrl) {
+                        resendToAssets(after);
+                    }
+                    createNote(`絵文字が更新されたかも!\n\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${moderationLog.user.username}`)
+                }
                 break
             case "deleteCustomEmoji":
                 const deleted_emoji = moderationLog.info.emoji as CustomEmoji
-                createNote(`カスタム絵文字が削除されたみたい…\n\`:${deleted_emoji.name}:\` \n\n削除した人：@${moderationLog.user.username}`)
+                if(moderationLog.user.username != "emoji_bot") {
+                    createNote(`カスタム絵文字が削除されたみたい…\n\`:${deleted_emoji.name}:\` \n\n削除した人：@${moderationLog.user.username}`)
+                }
                 break
             case "createAvatarDecoration":
                 const deco = moderationLog.info.avatarDecoration as AvatorDecoration 
@@ -192,3 +226,99 @@ async function createNote(message: string, visibility: string = "public") {
         })
     }
 }
+
+async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
+    const file = new Blob([buffer.buffer], { type: "image/webp" });
+
+    const formData = new FormData();
+    formData.append('i', token!);
+    formData.append('force', 'true');
+    formData.append('file', file);
+    formData.append('name', name);
+
+    return api.post('/drive/files/create', formData).then (response => {
+        if(response.status == 200) {
+            console.log(green + response.data.id + ": " + name+ reset)
+            return response.data.id
+        }
+    }).catch( error => {
+        console.log(error)
+    })
+}
+
+async function updateEmoji(emoji: CustomEmoji, fileId: string) {
+    const params = {
+        i: token,
+        aliases: emoji.aliases,
+        category: emoji.category,
+        fileId: fileId,
+        id: emoji.id,
+        isSensitive: emoji.isSensitive,
+        lisence: emoji.license,
+        localOnly: emoji.localOnly,
+        name: emoji.name,
+        roleIdsThatCanBeUsedThisEmojiAsReaction: emoji.roleIdsThatCanBeUsedThisEmojiAsReaction
+    }
+    return api.post('/admin/emoji/update', params).then (response => {
+        if(response.status == 204) {
+            console.log(green + params.name+ reset)
+        }
+    }).catch( error => {
+        console.log(error)
+    })
+}
+
+
+// カスタム絵文字をローカルにダウンロードしてきて
+// (webpじゃなければwebpに変換して)
+// r2 のバケットにアップしなおして
+// 再度カスタム絵文字を更新する処理
+async function resendToAssets(emoji: CustomEmoji){
+
+    // webp に変換済みのデータ
+    const buffer = await convert(emoji.publicUrl)
+    const filename = `${emoji.name}.webp`
+
+    // ドライブにアップロードして絵文字を更新
+    if(isDryRun) {
+        console.log("isDryRun=true のためドライブにアップしません")
+        console.log(yellow + emoji.name+ reset)
+    } else {
+        const id = await createDriveFile(filename, buffer)
+        await sleep(5000);
+        await updateEmoji(emoji, id)
+    }
+
+    // r2にアップロード
+    /*
+    // 元ファイルを削除して、新しいファイルをアップロードする（それでええんか…？
+    const key = `emojis/${emoji.name}.webp`
+    await r2.send(
+        new DeleteObjectCommand({
+            Bucket: bucket,
+            Key: key
+        })
+    )
+    await r2.send(
+        new PutObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            Body: buffer,
+            ContentType: "image/webp",
+        })
+    )
+    */
+
+    // カスタム絵文字のURLを更新
+}
+
+const convert = async (url: string): Promise<Buffer> => {
+    const res = await axios.get(url, {responseType: 'arraybuffer'})
+    const buf = Buffer.from(res.data)
+
+    return sharp(buf).resize({height:128}).webp().toBuffer()
+}
+
+async function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }

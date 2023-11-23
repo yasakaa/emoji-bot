@@ -2,3 +2,4 @@
 node_modules/*
 emojidb.json
 moderation.json
+tmp/*
