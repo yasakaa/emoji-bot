@@ -3,14 +3,6 @@ import * as fs from 'fs'
 import 'dotenv/config'
 import sharp from 'sharp'
 
-/*
-import {
-    S3Client,
-    PutObjectCommand,
-    DeleteObjectCommand
-  } from '@aws-sdk/client-s3';
-*/
-
 // 対象のホスト名 - 例：misskey.io / kasei.ski 等
 const host = process.env.HOST_NAME
 
@@ -26,6 +18,14 @@ const intervals: number = parseInt(process.env.INTERVALS ?? "60")
 
 // 一度に受け取る絵文字の数(APIのデフォルト)
 const limit = 30
+
+// ※ 壊れています
+// 送られてきたカスタム絵文字をemoji_bot君が再投稿しなおすかどうか
+const isReUpload: boolean = JSON.parse(process.env.IS_REUPLOAD?.toString() ?? "false") as boolean
+
+// ※ 壊れています
+// 再投稿する際にWebpにするかどうか
+const isConvert: boolean = JSON.parse(process.env.IS_CONVERT?.toString() ?? "false") as boolean
 
 const dbfilename = "moderation.json"
 
@@ -95,16 +95,6 @@ if (fs.existsSync(dbfilename)) {
 
 let moderationLogs: ModerationLog[] = []
 
-/*
-const r2 = new S3Client({
-    region: r2_region,
-    endpoint: r2_endpoint,
-    credentials: {
-      accessKeyId: access_key_id,
-      secretAccessKey: secret_accees_key,
-    },
-  });
-*/
 async function pullModerationLogs() {
     let newModerationLogs: ModerationLog[] = []
     let newLastModified: Date = new Date() // 命名もうちょっとどうにかならんか…？
@@ -114,16 +104,18 @@ async function pullModerationLogs() {
         let params
         if (untilId) {
             params = {
+                allowPartial: true,
                 i: token,
                 limit: limit,
-                query: null,
+                type: null,
                 untilId: untilId
             }
         } else {
             params = {
+                allowPartial: true,
                 i: token,
                 limit: limit,
-                query: null,
+                type: null
             }
         }
         await api.post('/admin/show-moderation-logs', params).then (response => {
@@ -204,7 +196,6 @@ if(!intervals || Number.isNaN((interval_ms = intervals * 1000)))
 // Promise を使って、もうちょっとちゃんと綺麗に実装してどうぞ
 setInterval( pullModerationLogs,  interval_ms)
 
-
 async function createNote(message: string, visibility: string = "public") {
     const params = {
         i: token,
@@ -268,48 +259,25 @@ async function updateEmoji(emoji: CustomEmoji, fileId: string) {
     })
 }
 
-
 // カスタム絵文字をローカルにダウンロードしてきて
 // (webpじゃなければwebpに変換して)
-// r2 のバケットにアップしなおして
 // 再度カスタム絵文字を更新する処理
 async function resendToAssets(emoji: CustomEmoji){
-
-    // webp に変換済みのデータ
-    const buffer = await convert(emoji.publicUrl)
-    const filename = `${emoji.name}.webp`
 
     // ドライブにアップロードして絵文字を更新
     if(isDryRun) {
         console.log("isDryRun=true のためドライブにアップしません")
         console.log(yellow + emoji.name+ reset)
-    } else {
+    } else if(isReUpload) {
+
+        // webp に変換済みのデータ
+        const buffer = await convert(emoji.publicUrl)
+        const filename = `${emoji.name}.webp`
+
         const id = await createDriveFile(filename, buffer)
         await sleep(5000);
         await updateEmoji(emoji, id)
     }
-
-    // r2にアップロード
-    /*
-    // 元ファイルを削除して、新しいファイルをアップロードする（それでええんか…？
-    const key = `emojis/${emoji.name}.webp`
-    await r2.send(
-        new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key
-        })
-    )
-    await r2.send(
-        new PutObjectCommand({
-            Bucket: bucket,
-            Key: key,
-            Body: buffer,
-            ContentType: "image/webp",
-        })
-    )
-    */
-
-    // カスタム絵文字のURLを更新
 }
 
 const convert = async (url: string): Promise<Buffer> => {
