@@ -3,43 +3,92 @@ import * as fs from 'fs'
 import 'dotenv/config'
 import sharp from 'sharp'
 
-// 対象のホスト名 - 例：misskey.io / kasei.ski 等
-const host = process.env.HOST_NAME
+// TODO: クラスにしてconstructor にしてもいいかもしれん。
+// TODO: そもそも EmojiBot というクラスを用意してあげるべき
+type EmojiBotOptions = {
+    // 対象のホスト名 - 例：misskey.io / kasei.ski 等
+    host: string,
 
-// BOTアカウントのAPI token。ノートの投稿の権限さえあればOK
-const token = process.env.API_TOKEN
+    // BOTアカウントのAPI token。ノートの投稿の権限さえあればOK
+    token: string,
 
-// 実際にノートを投稿するかどうか。true ならノートを投稿しない。
-// 初回起動時など、大量のノートを送信する可能性がある場合はtrueにしたほうが良い
-const isDryRun: boolean = JSON.parse(process.env.IS_DRY_RUN?.toString() ?? "true") as boolean
+    // 実際にノートを投稿するかどうか。true ならノートを投稿しない。
+    // 初回起動時など、大量のノートを送信する可能性がある場合はtrueにしたほうが良い
+    isDryRun: boolean,
 
-// 何秒に１度ポーリングを実行するか
-const intervals: number = parseInt(process.env.INTERVALS ?? "60")
+    // 何秒に１度ポーリングを実行するか
+    intervals: number,
 
-// 一度に受け取る絵文字の数(APIのデフォルト)
-const limit : number = parseInt(process.env.API_LIMIT ?? "30") 
+    // 一度に受け取る絵文字の数(APIのデフォルト)
+    limit: number,
 
-// Bot のアカウント名（@を除く）
-const botName = process.env.BOT_NAME 
+    // Bot のアカウント名（@を除く）
+    botName: string,
 
-// 送られてきたカスタム絵文字をemoji_bot君が再投稿しなおすかどうか
-const isReUpload: boolean = JSON.parse(process.env.IS_REUPLOAD?.toString() ?? "false") as boolean
+    // 送られてきたカスタム絵文字をemoji_bot君が再投稿しなおすかどうか
+    isReUpload: boolean,
 
-// 再投稿する際にWebpにするかどうか
-const isConvert: boolean = JSON.parse(process.env.IS_CONVERT?.toString() ?? "false") as boolean
+    // 再投稿する際にWebpにするかどうか
+    isConvert: boolean,
 
-// 投稿範囲の設定（add:追加, update:更新, delete:削除）
-const visibilityAdd = process.env.VISIBILITY_ADD
-const visibilityUpdate = process.env.VISIBILITY_UPDATE
-const visibilityDelete = process.env.VISIBILITY_DELETE
+    // 投稿範囲の設定（add:追加, update:更新, delete:削除）
+    visibility: {
+        add: string,
+        update: string,
+        delete: string,
+    },
 
-// CWをかけるかどうか（add:追加, update:更新, delete:削除）
-const useCwAdd = JSON.parse(process.env.USE_CW_ADD?.toString() ?? "false") as boolean
-const useCwUpdate = JSON.parse(process.env.USE_CW_UPDATE?.toString() ?? "false") as boolean
-const useCwDelete = JSON.parse(process.env.USE_CW_DELETE?.toString() ?? "false") as boolean
+    // CWをかけるかどうか（add:追加, update:更新, delete:削除）
+    useCW: {
+        add: boolean,
+        update: boolean,
+        delete: boolean,
+    },
 
-// 連合をオフにするかどうか
-const localOnly = JSON.parse(process.env.LOCAL_ONLY?.toString() ?? "false") as boolean
+    // 連合をオフにするかどうか
+    localOnly: boolean
+}
+
+function loadEmojiBotOptions(): EmojiBotOptions {
+
+    if (!process.env.HOST_NAME) {
+        console.log("HOST_NAME が指定されていません")
+        process.exit(1)
+    }
+    if (!process.env.API_TOKEN) {
+        console.log("API_TOKENが指定されていません")
+        process.exit(1)
+    }
+    if (!process.env.BOT_NAME) {
+        console.log("BOT_NAMEが指定されていません")
+        process.exit(1)
+    }
+
+    const options: EmojiBotOptions = {
+        host: process.env.HOST_NAME,
+        token: process.env.API_TOKEN,
+        isDryRun: JSON.parse(process.env.IS_DRY_RUN?.toString() ?? "true") as boolean,
+        intervals: parseInt(process.env.INTERVALS ?? "60"),
+        limit: parseInt(process.env.API_LIMIT ?? "30"),
+        botName: process.env.BOT_NAME,
+        isReUpload: JSON.parse(process.env.IS_REUPLOAD?.toString() ?? "false") as boolean,
+        isConvert: JSON.parse(process.env.IS_CONVERT?.toString() ?? "false") as boolean,
+        visibility: {
+            add: process.env.VISIBILITY_ADD ?? "public",
+            update: process.env.VISIBILITY_UPDATE ?? "home",
+            delete: process.env.VISIBILITY_DELETE ?? "home", 
+        },
+        useCW: {
+            add: JSON.parse(process.env.USE_CW_ADD?.toString() ?? "false") as boolean,
+            update: JSON.parse(process.env.USE_CW_UPDATE?.toString() ?? "false") as boolean,
+            delete: JSON.parse(process.env.USE_CW_DELETE?.toString() ?? "false") as boolean,
+        },
+        localOnly: JSON.parse(process.env.LOCAL_ONLY?.toString() ?? "false") as boolean
+    }
+    return options
+}
+
+const options = loadEmojiBotOptions()
 
 const dbfilename = "moderation.json"
 
@@ -58,7 +107,7 @@ const reset   = '\u001b[0m'
 let emojidb: CustomEmoji[] = []
 
 const api = axios.create({
-    baseURL: `https://${host}/api/`,
+    baseURL: `https://${options.host}/api/`,
     timeout: 3000,
     headers: {
     } 
@@ -107,6 +156,7 @@ if (fs.existsSync(dbfilename)) {
     lastModified = new Date()
 }
 
+// TODO: この変数使っていない説がある
 let moderationLogs: ModerationLog[] = []
 
 async function pullModerationLogs() {
@@ -119,16 +169,16 @@ async function pullModerationLogs() {
         if (untilId) {
             params = {
                 allowPartial: true,
-                i: token,
-                limit: limit,
+                i: options.token,
+                limit: options.limit,
                 type: null,
                 untilId: untilId
             }
         } else {
             params = {
                 allowPartial: true,
-                i: token,
-                limit: limit,
+                i: options.token,
+                limit: options.limit,
                 type: null
             }
         }
@@ -155,93 +205,93 @@ async function pullModerationLogs() {
         switch(moderationLog.type) {
             case "addCustomEmoji":
                 const emoji = moderationLog.info.emoji as CustomEmoji
-                if(moderationLog.user.username != botName) {
+                if(moderationLog.user.username != options.botName) {
                     resendToAssets(emoji);
                     let cwAdd : string | null
                     let headerAdd : string
-                    if(useCwAdd) {
+                    if(options.useCW.add) {
                         cwAdd = `新しい絵文字が追加されたかも! :${emoji.name}:\n`
                         headerAdd = ""
                     } else {
                         cwAdd = null
                         headerAdd = `新しい絵文字が追加されたかも!\n`
                     }
-                    createNote(`${headerAdd}\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${moderationLog.user.username}`, visibilityAdd, cwAdd)
+                    createNote(`${headerAdd}\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${moderationLog.user.username}`, options.visibility.add, cwAdd)
                 }
                 break
             case "updateCustomEmoji":
                 const after = moderationLog.info.after as CustomEmoji
                 const before = moderationLog.info.before as CustomEmoji
-                if(moderationLog.user.username != botName) {
+                if(moderationLog.user.username != options.botName) {
                     // publicUrlが変わってたらカスタム絵文字も再生成
                     if(after.publicUrl != before.publicUrl) {
                         resendToAssets(after);
                     }
                     let cwUpdate : string | null
                     let headerUpdate : string
-                    if(useCwUpdate) {
+                    if(options.useCW.update) {
                         cwUpdate = `絵文字が更新されたかも! :${after.name}:\n`
                         headerUpdate = ""
                     } else {
                         cwUpdate = null
                         headerUpdate = `絵文字が更新されたかも!\n`
                     }
-                    createNote(`${headerUpdate}\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${moderationLog.user.username}`, visibilityUpdate, cwUpdate)
+                    createNote(`${headerUpdate}\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${moderationLog.user.username}`, options.visibility.update, cwUpdate)
                 }
                 break
             case "deleteCustomEmoji":
                 const deleted_emoji = moderationLog.info.emoji as CustomEmoji
-                if(moderationLog.user.username != botName) {
+                if(moderationLog.user.username != options.botName) {
                     let cwDelete : string | null
                     let headerDelete : string
-                    if(useCwDelete) {
+                    if(options.useCW.delete) {
                         cwDelete = `カスタム絵文字が削除されたみたい…\n`
                         headerDelete = ""
                     } else {
                         cwDelete = null
                         headerDelete = `カスタム絵文字が削除されたみたい…\n`
                     }
-                    createNote(`${headerDelete}\`:${deleted_emoji.name}:\` \n\n削除した人：@${moderationLog.user.username}`, visibilityDelete, cwDelete)
+                    createNote(`${headerDelete}\`:${deleted_emoji.name}:\` \n\n削除した人：@${moderationLog.user.username}`, options.visibility.delete, cwDelete)
                 }
                 break
             case "createAvatarDecoration":
                 const deco = moderationLog.info.avatarDecoration as AvatorDecoration
                 let cwdAdd : string | null
                 let headerdAdd : string
-                if(useCwAdd) {
+                if(options.useCW.add) {
                     cwdAdd = `新しいデコレーションが追加されたかも!\n\`${deco.name}\``
                     headerdAdd = ""
                 } else {
                     cwdAdd = null
                     headerdAdd = `新しいデコレーションが追加されたかも!\n`
                 } 
-                createNote(`${headerdAdd}\`${deco.name}\` => ${deco.url} \n\n追加した人：@${moderationLog.user.username}`, visibilityAdd, cwdAdd)
+                createNote(`${headerdAdd}\`${deco.name}\` => ${deco.url} \n\n追加した人：@${moderationLog.user.username}`, options.visibility.add, cwdAdd)
                 break
             case "updateAvatarDecoration":
                 const afterd = moderationLog.info.after as AvatorDecoration 
                 let cwdUpdate : string | null
                 let headerdUpdate : string
-                if(useCwUpdate) {
+                if(options.useCW.update) {
                     cwdUpdate = `デコレーションが更新されたかも!\n\`${afterd.name}\``
                     headerdUpdate = ""
                 } else {
                     cwdUpdate = null
                     headerdUpdate = `デコレーションが更新されたかも!\n`
                 }
-                createNote(`${headerdUpdate}\`${afterd.name}\` => ${afterd.url} \n\n更新した人：@${moderationLog.user.username}`, visibilityUpdate, cwdUpdate)
+                createNote(`${headerdUpdate}\`${afterd.name}\` => ${afterd.url} \n\n更新した人：@${moderationLog.user.username}`, options.visibility.update, cwdUpdate)
                 break
             case "deleteAvatarDecoration":
                 const deleted = moderationLog.info.avatarDecoration as AvatorDecoration 
                 let cwdDelete : string | null
                 let headerdDelete : string
-                if(useCwDelete) {
+                if(options.useCW.delete) {
                     cwdDelete = `デコレーションが削除されたみたい…\n`
                     headerdDelete = ""
                 } else {
                     cwdDelete = null
                     headerdDelete = `デコレーションが削除されたみたい…\n`
                 }
-                createNote(`${headerdDelete}\`${deleted.name}\` \n\n更新した人：@${moderationLog.user.username}`, visibilityDelete, cwdDelete)
+                createNote(`${headerdDelete}\`${deleted.name}\` \n\n更新した人：@${moderationLog.user.username}`, options.visibility.delete, cwdDelete)
                 break
             default:
                 console.log("その他なんか:" + moderationLog)
@@ -259,24 +309,24 @@ async function pullModerationLogs() {
 }
 
 let interval_ms
-if(!intervals || Number.isNaN((interval_ms = intervals * 1000))) 
+if(!options.intervals || Number.isNaN((interval_ms = options.intervals * 1000))) 
 {  
     // デフォルトは60秒に1回ポーリング
     interval_ms = 60 * 1000
 }
 
-// Promise を使って、もうちょっとちゃんと綺麗に実装してどうぞ
+// TODO: Promise を使って、もうちょっとちゃんと綺麗に実装してどうぞ
 setInterval( pullModerationLogs,  interval_ms)
 
 async function createNote(message: string, visibility: string = "public", cw: string | null = null) {
     const params = {
-        i: token,
+        i: options.token,
         text: message,
         visibility: visibility, // public or home
-        localOnly: localOnly, // 連合をオフにするかどうか
+        localOnly: options.localOnly, // 連合をオフにするかどうか
         cw: cw // 注釈に設定する文字列
     }
-    if(isDryRun) {
+    if(options.isDryRun) {
         console.log("isDryRun=true のため投稿しません")
         console.log(yellow + params.text+ reset)
     }
@@ -295,7 +345,7 @@ async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
     const file = new Blob([buffer.buffer], { type: "image/webp" });
 
     const formData = new FormData();
-    formData.append('i', token!);
+    formData.append('i', options.token!);
     formData.append('force', 'true');
     formData.append('file', file);
     formData.append('name', name);
@@ -312,7 +362,7 @@ async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
 
 async function updateEmoji(emoji: CustomEmoji, fileId: string) {
     const params = {
-        i: token,
+        i: options.token,
         aliases: emoji.aliases,
         category: emoji.category,
         fileId: fileId,
@@ -338,10 +388,10 @@ async function updateEmoji(emoji: CustomEmoji, fileId: string) {
 async function resendToAssets(emoji: CustomEmoji){
 
     // ドライブにアップロードして絵文字を更新
-    if(isDryRun) {
+    if(options.isDryRun) {
         console.log("isDryRun=true のためドライブにアップしません")
         console.log(yellow + emoji.name+ reset)
-    } else if(isReUpload) {
+    } else if(options.isReUpload) {
 
         // webp に変換済みのデータ
         const buffer = await convert(emoji.publicUrl)
