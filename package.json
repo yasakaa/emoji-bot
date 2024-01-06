@@ -5,11 +5,11 @@
   "author": "@camilla_ett",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.4.5",
-    "@types/ws": "^8.5.5",
+    "@types/node": "^20.10.6",
+    "@types/ws": "^8.5.10",
     "nodemon": "^2.0.22",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.1.6"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "scripts": {
     "watch": "npm run build:live",
@@ -18,10 +18,12 @@
     "start": "ts-node src/index.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.456.0",
-    "axios": "^1.4.0",
+    "@aspida/axios": "^1.14.0",
+    "@aws-sdk/client-s3": "^3.485.0",
+    "aspida": "^1.14.0",
+    "axios": "^1.6.5",
     "dotenv": "^16.3.1",
     "sharp": "^0.32.6",
-    "ws": "^8.13.0"
+    "ws": "^8.16.0"
   }
 }
