@@ -2,6 +2,10 @@ import axios from 'axios'
 import * as fs from 'fs'
 import 'dotenv/config'
 import sharp from 'sharp'
+import { ModerationLog } from './misskey/model/ModerationLog'
+import { CustomEmoji } from './misskey/model/CustomEmoji'
+import { AvatorDecoration } from './misskey/model/AvatorDecoration'
+import { Logger } from './utils/logger'
 
 // TODO: クラスにしてconstructor にしてもいいかもしれん。
 // TODO: そもそも EmojiBot というクラスを用意してあげるべき
@@ -94,14 +98,6 @@ const dbfilename = "moderation.json"
 
 const tmp_directory = "tmp"
 
-// green と reset 以外使ってない
-const red     = '\u001b[31m'
-const green   = '\u001b[32m'
-const yellow  = '\u001b[33m'
-const magenta = '\u001b[35m'
-const cyan    = '\u001b[36m'
-const reset   = '\u001b[0m'
-
 // 将来的にDBに持たせたりしたほうが良いけど、今は雑に手元のローカルに保存すればよし
 // 定期的に admin/emoji/list を見に行って、ローカルのDBにコピーしていくスタイル
 let emojidb: CustomEmoji[] = []
@@ -112,38 +108,6 @@ const api = axios.create({
     headers: {
     } 
 })
-
-interface CustomEmoji {
-    id: string,
-    aliases: string[],
-    name: string,
-    category: string,
-    host: string,
-    publicUrl: string,
-    originalUrl: string,
-    license: string,
-    isSensitive: boolean,
-    localOnly: boolean,
-    roleIdsThatCanBeUsedThisEmojiAsReaction: string[]
-}
-
-interface AvatorDecoration {
-    id: string,
-    url: string,
-    name: string,
-    description: string,
-    updatedAt: string
-}
-
-// モデレーションログ
-interface ModerationLog {
-    id: string,
-    createdAt: string, // Dateでいけたっけ
-    type: string,
-    info: any,
-    userId: string, // なんでuserとuseridがあるんですかねぇ
-    user: any, // userを作る必要がある
-}
 
 // 起動時に最後のモデレーションログを読み込み。
 // 存在しなければ、現在時刻を返す
@@ -327,13 +291,13 @@ async function createNote(message: string, visibility: string = "public", cw: st
         cw: cw // 注釈に設定する文字列
     }
     if(options.isDryRun) {
-        console.log("isDryRun=true のため投稿しません")
-        console.log(yellow + params.text+ reset)
+        Logger.info("isDryRun=true のため投稿しません")
+        Logger.info(params.text)
     }
     else {
         api.post('/notes/create', params).then (response => {
             if(response.status == 200) {
-                console.log(green + params.text+ reset)
+                Logger.success(params.text)
             }
         }).catch( error => {
             console.log(error)
@@ -352,7 +316,7 @@ async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
 
     return api.post('/drive/files/create', formData).then (response => {
         if(response.status == 200) {
-            console.log(green + response.data.id + ": " + name+ reset)
+            Logger.success(response.data.id + ": " + name)
             return response.data.id
         }
     }).catch( error => {
@@ -375,7 +339,7 @@ async function updateEmoji(emoji: CustomEmoji, fileId: string) {
     }
     return api.post('/admin/emoji/update', params).then (response => {
         if(response.status == 204) {
-            console.log(green + params.name+ reset)
+            Logger.success(params.name)
         }
     }).catch( error => {
         console.log(error)
@@ -389,8 +353,8 @@ async function resendToAssets(emoji: CustomEmoji){
 
     // ドライブにアップロードして絵文字を更新
     if(options.isDryRun) {
-        console.log("isDryRun=true のためドライブにアップしません")
-        console.log(yellow + emoji.name+ reset)
+        Logger.info("isDryRun=true のためドライブにアップしません")
+        Logger.info(emoji.name)
     } else if(options.isReUpload) {
 
         // webp に変換済みのデータ
