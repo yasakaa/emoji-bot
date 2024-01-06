@@ -1,4 +1,5 @@
 import axios from 'axios'
+import aspida from "@aspida/axios";
 import * as fs from 'fs'
 import 'dotenv/config'
 import sharp from 'sharp'
@@ -6,6 +7,7 @@ import { ModerationLog } from './misskey/model/ModerationLog'
 import { CustomEmoji } from './misskey/model/CustomEmoji'
 import { AvatorDecoration } from './misskey/model/AvatorDecoration'
 import { Logger } from './utils/logger'
+import api from './misskey/api/$api'
 
 // TODO: クラスにしてconstructor にしてもいいかもしれん。
 // TODO: そもそも EmojiBot というクラスを用意してあげるべき
@@ -98,16 +100,12 @@ const dbfilename = "moderation.json"
 
 const tmp_directory = "tmp"
 
+// aspida を利用したAPIクライアント
+const client = api(aspida(undefined, {baseURL: options.host}))
+
 // 将来的にDBに持たせたりしたほうが良いけど、今は雑に手元のローカルに保存すればよし
 // 定期的に admin/emoji/list を見に行って、ローカルのDBにコピーしていくスタイル
 let emojidb: CustomEmoji[] = []
-
-const api = axios.create({
-    baseURL: `https://${options.host}/api/`,
-    timeout: 3000,
-    headers: {
-    } 
-})
 
 // 起動時に最後のモデレーションログを読み込み。
 // 存在しなければ、現在時刻を返す
@@ -146,9 +144,9 @@ async function pullModerationLogs() {
                 type: null
             }
         }
-        await api.post('/admin/show-moderation-logs', params).then (response => {
+        await client.admin.show_moderation_logs.post({body: params}).then (response => {
             if(response.status == 200) {
-                const moderationLogs = JSON.parse(JSON.stringify(response.data)) as ModerationLog[]
+                const moderationLogs = JSON.parse(JSON.stringify(response.body)) as ModerationLog[]
                 untilId = moderationLogs.pop()?.id
                 // nullとか知らん
                 newLastModified = new Date(moderationLogs.pop()?.createdAt!)
@@ -295,7 +293,7 @@ async function createNote(message: string, visibility: string = "public", cw: st
         Logger.info(params.text)
     }
     else {
-        api.post('/notes/create', params).then (response => {
+        client.notes.create.post({body: params}).then ( response => {
             if(response.status == 200) {
                 Logger.success(params.text)
             }
@@ -305,6 +303,7 @@ async function createNote(message: string, visibility: string = "public", cw: st
     }
 }
 
+// TODO: 壊れているので後で治す
 async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
     const file = new Blob([buffer.buffer], { type: "image/webp" });
 
@@ -313,7 +312,7 @@ async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
     formData.append('force', 'true');
     formData.append('file', file);
     formData.append('name', name);
-
+/*
     return api.post('/drive/files/create', formData).then (response => {
         if(response.status == 200) {
             Logger.success(response.data.id + ": " + name)
@@ -322,8 +321,11 @@ async function createDriveFile(name: string,buffer: Buffer): Promise<string>{
     }).catch( error => {
         console.log(error)
     })
+*/
+    return Promise.resolve("")
 }
 
+//
 async function updateEmoji(emoji: CustomEmoji, fileId: string) {
     const params = {
         i: options.token,
@@ -337,7 +339,7 @@ async function updateEmoji(emoji: CustomEmoji, fileId: string) {
         name: emoji.name,
         roleIdsThatCanBeUsedThisEmojiAsReaction: emoji.roleIdsThatCanBeUsedThisEmojiAsReaction
     }
-    return api.post('/admin/emoji/update', params).then (response => {
+    return client.admin.emoji.update.post({body: params}).then(response => {
         if(response.status == 204) {
             Logger.success(params.name)
         }

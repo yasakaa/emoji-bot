@@ -15,7 +15,8 @@
     "watch": "npm run build:live",
     "build": "tsc -p .",
     "build:live": "nodemon --watch 'src/**/*.ts' --exec \"ts-node\" src/index.ts",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "api:build": "aspida"
   },
   "dependencies": {
     "@aspida/axios": "^1.14.0",
