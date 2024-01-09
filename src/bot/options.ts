@@ -25,9 +25,6 @@ export type EmojiBotOptions = {
     // 送られてきたカスタム絵文字をemoji_bot君が再投稿しなおすかどうか
     isReUpload: boolean,
 
-    // 再投稿する際にWebpにするかどうか
-    isConvert: boolean,
-
     // 投稿範囲の設定（add:追加, update:更新, delete:削除）
     visibility: {
         add: string,
@@ -71,7 +68,6 @@ export function loadEmojiBotOptions(): EmojiBotOptions {
         limit: parseInt(process.env.API_LIMIT ?? "30"),
         botName: process.env.BOT_NAME,
         isReUpload: JSON.parse(process.env.IS_REUPLOAD?.toString() ?? "false") as boolean,
-        isConvert: JSON.parse(process.env.IS_CONVERT?.toString() ?? "false") as boolean,
         visibility: {
             add: process.env.VISIBILITY_ADD ?? "public",
             update: process.env.VISIBILITY_UPDATE ?? "home",

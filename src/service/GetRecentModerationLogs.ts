@@ -1,5 +1,6 @@
 import { ApiInstance } from "../misskey/api/$api"
 import { ModerationLog } from "../misskey/model/ModerationLog"
+import { Logger } from "../utils/logger"
 
 export class GetRecentModerationLogs {
     api: ApiInstance
@@ -43,7 +44,7 @@ export class GetRecentModerationLogs {
                     moderationLogs = moderationLogs.concat(newModerationLogs)
                 }
             }).catch( error => {
-                console.log(error)
+                Logger.error(error)
             })
         } while(newLastModified > lastModified);
     

@@ -7,6 +7,7 @@ import { EmojiBotOptions, loadEmojiBotOptions } from "./options"
 import aspida from "@aspida/axios";
 import { ModerationLog } from '../misskey/model/ModerationLog';
 import { Notification } from './Notification';
+import { CreateDriveFile } from '../service/CreateDriveFile';
 
 // TODO: 設定で変更できるようにする？
 const dbfilename = "moderation.json"
@@ -19,6 +20,7 @@ export class EmojiBot {
     protected getRecentModerationLogs
     protected updateEmoji
     protected createNote
+    protected createDriveFile
 
     protected notification
 
@@ -40,9 +42,15 @@ export class EmojiBot {
         this.getRecentModerationLogs = new GetRecentModerationLogs(this.apiClient, this.options.token)
         this.updateEmoji = new UpdateEmoji(this.apiClient, this.options.token)
         this.createNote = new CreateNote(this.apiClient, this.options.token)
+        this.createDriveFile = new CreateDriveFile(this.apiClient, this.options.token)
 
         // TODO: これもDIで
-        this.notification = new Notification(this.createNote, this.options)
+        this.notification = new Notification(
+            this.createNote,
+            this.createDriveFile,
+            this.updateEmoji,
+            this.options
+        )
 
         // 起動時に最後のモデレーションログを読み込み。
         // 存在しなければ、現在時刻を返す

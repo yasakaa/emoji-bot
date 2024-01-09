@@ -1,17 +1,30 @@
+import axios from "axios";
 import { AvatorDecoration } from "../misskey/model/AvatorDecoration";
 import { CustomEmoji } from "../misskey/model/CustomEmoji";
 import { ModerationLog } from "../misskey/model/ModerationLog";
 import { User } from "../misskey/model/User";
+import { CreateDriveFile } from "../service/CreateDriveFile";
 import { CreateNote } from "../service/CreateNote";
+import { UpdateEmoji } from "../service/UpdateEmoji";
 import { Logger } from "../utils/logger";
 import { EmojiBotOptions } from "./options";
+import { sleep } from "../utils/sleep";
 
 export class Notification {
     protected createNote: CreateNote
+    protected createDriveFile: CreateDriveFile
+    protected updateEmoji: UpdateEmoji
     protected options: EmojiBotOptions
     
-    constructor(createNote: CreateNote, options: EmojiBotOptions) {
+    constructor(
+        createNote: CreateNote,
+        createDriveFile: CreateDriveFile,
+        updateEmoji: UpdateEmoji,
+        options: EmojiBotOptions
+    ) {
         this.createNote = createNote
+        this.createDriveFile = createDriveFile
+        this.updateEmoji = updateEmoji
         this.options = options
     }
 
@@ -21,8 +34,12 @@ export class Notification {
         const user = moderationLog.user as User
 
         if(user.username != this.options.botName) {
-            // 壊れているので直す
-            // resendToAssets(emoji);
+            // 絵文字をアップロードしなおす
+            if(this.options.isReUpload) {
+                this.reuploadEmoji(emoji)
+            }
+
+            // 通知
             const cw = this.options.useCW.add ? `新しい絵文字が追加されたかも! :${emoji.name}:\n` : null
             const header =  this.options.useCW.add ? "" : `新しい絵文字が追加されたかも!\n`
             const message = `${header}\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${user.username}`
@@ -43,11 +60,15 @@ export class Notification {
         const user = moderationLog.user as User
         
         if(user.username != this.options.botName) {
-            // publicUrlが変わってたらカスタム絵文字も再生成
+            // 画像のURLが変わっている場合、画像が差し替えられている
             if(after.publicUrl != before.publicUrl) {
-                // 壊れているので直す
-                // resendToAssets(after);
+                // 絵文字をアップロードしなおす
+                if(this.options.isReUpload) {
+                    this.reuploadEmoji(after)
+                }
             }
+
+            // 通知
             const cw = this.options.useCW.update ? `絵文字が更新されたかも! :${after.name}:\n` : null
             const header = this.options.useCW.update ? "" : `絵文字が更新されたかも!\n`
             const message = `${header}\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${user.username}`
@@ -147,6 +168,24 @@ export class Notification {
             default:
                 Logger.info("その他なんか:" + moderationLog)
                 break
+        }
+    }
+
+    protected async reuploadEmoji(emoji: CustomEmoji) {
+        const emoji_file = await axios.get(emoji.publicUrl, {responseType: 'arraybuffer'})
+        const buffer = Buffer.from(emoji_file.data)
+        const file = new Blob([buffer.buffer]);
+
+        if(this.options.isDryRun) {
+            Logger.info("isDryRun=true のためドライブにアップしません")
+            Logger.info(emoji.name)
+        } else {
+            const filename = `${emoji.name}`
+            const id = await this.createDriveFile.execute(filename, file)
+            if (id) {
+                await sleep(5000)
+                await this.updateEmoji.execute(emoji, id!)
+            }
         }
     }
 }

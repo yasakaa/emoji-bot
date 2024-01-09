@@ -9,7 +9,7 @@ export type Methods = DefineMethods<{
             fileId: string,
             id: string,
             isSensitive: boolean,
-            lisence: string,
+            license: string,
             localOnly: boolean,
             name: string,
             roleIdsThatCanBeUsedThisEmojiAsReaction: string[]

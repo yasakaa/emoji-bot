@@ -23,7 +23,7 @@ export class CreateNote {
                 Logger.success(params.text)
             }
         }).catch( error => {
-            console.log(error)
+            Logger.error(error)
         })
     }
 }

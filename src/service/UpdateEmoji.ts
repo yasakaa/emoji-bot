@@ -19,17 +19,17 @@ export class UpdateEmoji {
             fileId: fileId,
             id: emoji.id,
             isSensitive: emoji.isSensitive,
-            lisence: emoji.license,
+            license : emoji.license,
             localOnly: emoji.localOnly,
             name: emoji.name,
             roleIdsThatCanBeUsedThisEmojiAsReaction: emoji.roleIdsThatCanBeUsedThisEmojiAsReaction
         }
         return this.api.admin.emoji.update.post({body: params}).then(response => {
             if(response.status == 204) {
-                Logger.success(params.name)
+                Logger.success(`reuploaded: ${params.name} => ${fileId}`)
             }
         }).catch( error => {
-            console.log(error)
+            Logger.error(error)
         })
     }
 }
