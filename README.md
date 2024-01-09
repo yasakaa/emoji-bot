@@ -17,14 +17,14 @@ Misskey バージョン 2023.12.1 以降はアクセストークンに以下の�
 
 ## `pnpm` を利用した起動方法
 
-``sh
+```sh
 pnpm install
 pnpm start
-``
+```
 
 ## Docker を利用した起動方法
 
-``sh
+```sh
 docker compose build
 docker compose up -d
-``
+```

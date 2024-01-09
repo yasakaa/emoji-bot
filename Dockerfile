@@ -11,12 +11,5 @@ RUN corepack enable
 COPY --link . ./emoji-bot
 WORKDIR /emoji-bot
 
-FROM base AS prod-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
-
-FROM base AS build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run -r build
-
 RUN pnpm install
 CMD ["pnpm", "start"]
