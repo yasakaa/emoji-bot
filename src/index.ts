@@ -4,7 +4,6 @@ import { EmojiBot } from './bot'
 const emojiBot = new EmojiBot()
 emojiBot.run()
 
-
 // TODO: ココから下は全部壊れているので後で治す
 /*
 const tmp_directory = "tmp"
