@@ -1,15 +1,14 @@
-
-
-
-FROM node:20.10.0-slim as base
-
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+FROM node:20.10.0-slim
 
 RUN corepack enable
 
-COPY --link . ./emoji-bot
 WORKDIR /emoji-bot
 
-RUN pnpm install
+COPY --link pnpm-lock.yaml package.json ./
+
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
+	pnpm install --frozen-lockfile --aggregate-output
+
+COPY --link . ./
+
 CMD ["pnpm", "start"]
