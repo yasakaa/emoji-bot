@@ -2,13 +2,7 @@ import { ApiInstance } from "../misskey/api/$api"
 import { Logger } from "../utils/logger"
 
 export class CreateNote {
-    api: ApiInstance
-    token: string
-
-    constructor(api: ApiInstance, token: string) {
-        this.api = api
-        this.token = token
-    }
+    constructor(private api: ApiInstance, private token: string) {}
 
     async execute(message: string, visibility: string = "public", localOnly: boolean,cw: string | null = null) {
         const params = {

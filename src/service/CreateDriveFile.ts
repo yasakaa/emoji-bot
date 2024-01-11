@@ -2,13 +2,7 @@ import { ApiInstance } from "../misskey/api/$api"
 import { Logger } from "../utils/logger"
 
 export class CreateDriveFile {
-    api: ApiInstance
-    token: string
-
-    constructor(api: ApiInstance, token: string) {
-        this.api = api
-        this.token = token
-    }
+    constructor(private api: ApiInstance, private token: string) {}
 
     async execute(name: string, file: Blob) {
         const formData = {

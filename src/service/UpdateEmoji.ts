@@ -3,13 +3,7 @@ import { CustomEmoji } from "../misskey/model/CustomEmoji"
 import { Logger } from "../utils/logger"
 
 export class UpdateEmoji {
-    api: ApiInstance
-    token: string
-
-    constructor(api: ApiInstance, token: string) {
-        this.api = api
-        this.token = token
-    }
+    constructor(private api: ApiInstance, private token: string) {}
 
     async execute(emoji: CustomEmoji, fileId: string) {
         const params = {

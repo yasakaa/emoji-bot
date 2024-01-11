@@ -3,13 +3,7 @@ import { User } from "../misskey/model/User"
 import { Logger } from "../utils/logger"
 
 export class Self {
-    api: ApiInstance
-    token: string
-
-    constructor(api: ApiInstance, token: string) {
-        this.api = api
-        this.token = token
-    }
+    constructor(private api: ApiInstance, private token: string) {}
 
     // TODO: User | undefined 以外にいい方法ある？
     async execute(): Promise<User | undefined> {

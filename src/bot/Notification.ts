@@ -11,22 +11,15 @@ import { EmojiBotOptions } from "./options";
 import { sleep } from "../utils/sleep";
 
 export class Notification {
-    protected createNote: CreateNote
-    protected createDriveFile: CreateDriveFile
-    protected updateEmoji: UpdateEmoji
     protected options: EmojiBotOptions
-
     protected user?: User
     
     constructor(
-        createNote: CreateNote,
-        createDriveFile: CreateDriveFile,
-        updateEmoji: UpdateEmoji,
+        private createNote: CreateNote,
+        private createDriveFile: CreateDriveFile,
+        private updateEmoji: UpdateEmoji,
         options: EmojiBotOptions
     ) {
-        this.createNote = createNote
-        this.createDriveFile = createDriveFile
-        this.updateEmoji = updateEmoji
         this.options = options
     }
 

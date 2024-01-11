@@ -3,13 +3,8 @@ import { ModerationLog } from "../misskey/model/ModerationLog"
 import { Logger } from "../utils/logger"
 
 export class GetRecentModerationLogs {
-    api: ApiInstance
-    token: string
+    constructor(private api: ApiInstance, private token: string) {}
 
-    constructor(api: ApiInstance, token: string) {
-        this.api = api
-        this.token = token
-    }
     async execute(lastModified: Date, limit: number = 30): Promise<ModerationLog[]>  {
         let moderationLogs: ModerationLog[] = []
         let newLastModified: Date = new Date() // 命名もうちょっとどうにかならんか…？
