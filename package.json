@@ -5,7 +5,7 @@
   "author": "@camilla_ett",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.10.6",
+    "@types/node": "^20.10.0",
     "@types/ws": "^8.5.10",
     "nodemon": "^2.0.22",
     "ts-node": "^10.9.2",
@@ -20,11 +20,9 @@
   },
   "dependencies": {
     "@aspida/axios": "^1.14.0",
-    "@aws-sdk/client-s3": "^3.485.0",
     "aspida": "^1.14.0",
     "axios": "^1.6.5",
     "dotenv": "^16.3.1",
-    "sharp": "^0.32.6",
     "ws": "^8.16.0"
   }
 }
