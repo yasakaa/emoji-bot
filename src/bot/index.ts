@@ -1,15 +1,15 @@
-import * as fs from 'fs'
-import api, { ApiInstance } from "../misskey/api/$api";
-import { CreateNote } from "../service/CreateNote";
-import { GetRecentModerationLogs } from "../service/GetRecentModerationLogs";
-import { UpdateEmoji } from "../service/UpdateEmoji";
+import * as fs from "fs"
+import api, { ApiInstance } from "../misskey/api/$api"
+import { CreateNote } from "../service/CreateNote"
+import { GetRecentModerationLogs } from "../service/GetRecentModerationLogs"
+import { UpdateEmoji } from "../service/UpdateEmoji"
 import { EmojiBotOptions, loadEmojiBotOptions } from "./options"
-import aspida from "@aspida/axios";
-import { ModerationLog } from '../misskey/model/ModerationLog';
-import { Notification } from './Notification';
-import { CreateDriveFile } from '../service/CreateDriveFile';
-import { Self } from '../service/Self';
-import { User } from '../misskey/model/User';
+import aspida from "@aspida/axios"
+import { ModerationLog } from "../misskey/model/ModerationLog"
+import { Notification } from "./Notification"
+import { CreateDriveFile } from "../service/CreateDriveFile"
+import { Self } from "../service/Self"
+import { User } from "../misskey/model/User"
 
 // TODO: 設定で変更できるようにする？
 const dbfilename = "moderation.json"
@@ -61,8 +61,7 @@ export class EmojiBot {
         // 存在しなければ、現在時刻を返す
         this.lastModified = new Date()
         if (fs.existsSync(dbfilename)) {
-            let lastModetationLog: ModerationLog
-            lastModetationLog = JSON.parse(fs.readFileSync(dbfilename, 'utf8')) as ModerationLog
+            const lastModetationLog = JSON.parse(fs.readFileSync(dbfilename, "utf8")) as ModerationLog
             this.lastModified= new Date(lastModetationLog.createdAt)
         }
     }

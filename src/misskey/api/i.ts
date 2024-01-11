@@ -1,5 +1,5 @@
-import { DefineMethods } from "aspida";
-import { User } from "../model/User";
+import { DefineMethods } from "aspida"
+import { User } from "../model/User"
 
 export type Methods = DefineMethods<{
     post: {

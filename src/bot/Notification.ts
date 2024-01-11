@@ -1,14 +1,14 @@
-import axios from "axios";
-import { AvatorDecoration } from "../misskey/model/AvatorDecoration";
-import { CustomEmoji } from "../misskey/model/CustomEmoji";
-import { ModerationLog } from "../misskey/model/ModerationLog";
-import { User } from "../misskey/model/User";
-import { CreateDriveFile } from "../service/CreateDriveFile";
-import { CreateNote } from "../service/CreateNote";
-import { UpdateEmoji } from "../service/UpdateEmoji";
-import { Logger } from "../utils/logger";
-import { EmojiBotOptions } from "./options";
-import { sleep } from "../utils/sleep";
+import axios from "axios"
+import { AvatorDecoration } from "../misskey/model/AvatorDecoration"
+import { CustomEmoji } from "../misskey/model/CustomEmoji"
+import { ModerationLog } from "../misskey/model/ModerationLog"
+import { User } from "../misskey/model/User"
+import { CreateDriveFile } from "../service/CreateDriveFile"
+import { CreateNote } from "../service/CreateNote"
+import { UpdateEmoji } from "../service/UpdateEmoji"
+import { Logger } from "../utils/logger"
+import { EmojiBotOptions } from "./options"
+import { sleep } from "../utils/sleep"
 
 export class Notification {
     protected options: EmojiBotOptions
@@ -36,7 +36,7 @@ export class Notification {
 
             // 通知
             const cw = this.options.useCW.add ? `新しい絵文字が追加されたかも! :${emoji.name}:\n` : null
-            const header =  this.options.useCW.add ? "" : `新しい絵文字が追加されたかも!\n`
+            const header =  this.options.useCW.add ? "" : "新しい絵文字が追加されたかも!\n"
             const message = `${header}\`:${emoji.name}:\` => :${emoji.name}: \n\n【カテゴリー】\n\`${emoji.category}\`\n\n【ライセンス】\n\`${emoji.license}\`\n\n追加した人：@${user.username}`
 
             if(this.options.isDryRun) {
@@ -65,13 +65,13 @@ export class Notification {
 
             // 通知
             const cw = this.options.useCW.update ? `絵文字が更新されたかも! :${after.name}:\n` : null
-            const header = this.options.useCW.update ? "" : `絵文字が更新されたかも!\n`
+            const header = this.options.useCW.update ? "" : "絵文字が更新されたかも!\n"
             const message = `${header}\`:${after.name}:\` => :${after.name}: \n\n【カテゴリー】\n\`${after.category}\`\n\n【ライセンス】\n\`${after.license}\`\n\n更新した人：@${user.username}`
             if(this.options.isDryRun) {
                 Logger.info("isDryRun=true のため投稿しません")
                 Logger.info(message)
             } else {
-               this.createNote.execute(message, this.options.visibility.update, this.options.localOnly, cw)
+                this.createNote.execute(message, this.options.visibility.update, this.options.localOnly, cw)
             }
         }
     }
@@ -82,14 +82,14 @@ export class Notification {
         const user = moderationLog.user as User
         
         if(user.username != this.user?.username) {
-            let cw = this.options.useCW.delete ? `カスタム絵文字が削除されたみたい…\n` : null
-            let header = this.options.useCW.delete ? "" : `カスタム絵文字が削除されたみたい…\n`
+            const cw = this.options.useCW.delete ? "カスタム絵文字が削除されたみたい…\n" : null
+            const header = this.options.useCW.delete ? "" : "カスタム絵文字が削除されたみたい…\n"
             const message = `${header}\`:${emoji.name}:\` \n\n削除した人：@${user.username}`
             if(this.options.isDryRun) {
                 Logger.info("isDryRun=true のため投稿しません")
                 Logger.info(message)
             } else {
-               this.createNote.execute(message, this.options.visibility.delete, this.options.localOnly, cw)
+                this.createNote.execute(message, this.options.visibility.delete, this.options.localOnly, cw)
             }
         }
     }
@@ -99,7 +99,7 @@ export class Notification {
         const user = moderationLog.user as User
 
         const cw = this.options.useCW.add ? `新しいデコレーションが追加されたかも!\n\`${deco.name}\`` : null
-        const header = this.options.useCW.add ? "" : `新しいデコレーションが追加されたかも!\n`
+        const header = this.options.useCW.add ? "" : "新しいデコレーションが追加されたかも!\n"
         const message = `${header}\`${deco.name}\` => ${deco.url} \n\n追加した人：@${user.username}`
         if(this.options.isDryRun) {
             Logger.info("isDryRun=true のため投稿しません")
@@ -114,7 +114,7 @@ export class Notification {
         const user = moderationLog.user as User
 
         const cw = this.options.useCW.update ? `デコレーションが更新されたかも!\n\`${deco.name}\`` : null
-        const header = this.options.useCW.update ? "" : `デコレーションが更新されたかも!\n`
+        const header = this.options.useCW.update ? "" : "デコレーションが更新されたかも!\n"
         const message = `${header}\`${deco.name}\` => ${deco.url} \n\n更新した人：@${user.username}`
         if(this.options.isDryRun) {
             Logger.info("isDryRun=true のため投稿しません")
@@ -128,8 +128,8 @@ export class Notification {
         const deco = moderationLog.info.avatarDecoration as AvatorDecoration 
         const user = moderationLog.user as User
 
-        const cw = this.options.useCW.delete ? `デコレーションが削除されたみたい…` : null
-        const header = this.options.useCW.delete ? "" : `デコレーションが削除されたみたい…\n`
+        const cw = this.options.useCW.delete ? "デコレーションが削除されたみたい…" : null
+        const header = this.options.useCW.delete ? "" : "デコレーションが削除されたみたい…\n"
         const message = `${header}\`${deco.name}\` \n\n削除した人：@${user.username}`
         if(this.options.isDryRun) {
             Logger.info("isDryRun=true のため投稿しません")
@@ -143,34 +143,34 @@ export class Notification {
     notify(moderationLog: ModerationLog, user: User) {
         this.user = user
         switch(moderationLog.type) {
-            case "addCustomEmoji": 
-                this.addCustomEmoji(moderationLog)
-                break
-            case "updateCustomEmoji":
-                this.updateCustomEmoji(moderationLog)
-                break
-            case "deleteCustomEmoji":
-                this.deleteCustomEmoji(moderationLog)
-                break
-            case "createAvatarDecoration": 
-                this.createAvatarDecoration(moderationLog)
-                break
-            case "updateAvatarDecoration":
-                this.updateAvatorDecoration(moderationLog)
-                break
-            case "deleteAvatarDecoration":
-                this.deleteAvatorDecoration(moderationLog)
-                break
-            default:
-                Logger.info("その他なんか:" + moderationLog)
-                break
+        case "addCustomEmoji": 
+            this.addCustomEmoji(moderationLog)
+            break
+        case "updateCustomEmoji":
+            this.updateCustomEmoji(moderationLog)
+            break
+        case "deleteCustomEmoji":
+            this.deleteCustomEmoji(moderationLog)
+            break
+        case "createAvatarDecoration": 
+            this.createAvatarDecoration(moderationLog)
+            break
+        case "updateAvatarDecoration":
+            this.updateAvatorDecoration(moderationLog)
+            break
+        case "deleteAvatarDecoration":
+            this.deleteAvatorDecoration(moderationLog)
+            break
+        default:
+            Logger.info("その他なんか:" + moderationLog)
+            break
         }
     }
 
     protected async reuploadEmoji(emoji: CustomEmoji) {
-        const emoji_file = await axios.get(emoji.publicUrl, {responseType: 'arraybuffer'})
+        const emoji_file = await axios.get(emoji.publicUrl, {responseType: "arraybuffer"})
         const buffer = Buffer.from(emoji_file.data)
-        const file = new Blob([buffer.buffer]);
+        const file = new Blob([buffer.buffer])
 
         if(this.options.isDryRun) {
             Logger.info("isDryRun=true のためドライブにアップしません")

@@ -1,5 +1,5 @@
-import { DefineMethods } from "aspida";
-import { ModerationLog } from "../../model/ModerationLog";
+import { DefineMethods } from "aspida"
+import { ModerationLog } from "../../model/ModerationLog"
 
 export type Methods = DefineMethods<{
     post: {

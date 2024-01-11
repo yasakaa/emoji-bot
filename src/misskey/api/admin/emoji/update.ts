@@ -1,4 +1,4 @@
-import { DefineMethods } from "aspida";
+import { DefineMethods } from "aspida"
 
 export type Methods = DefineMethods<{
     post: {
@@ -14,6 +14,6 @@ export type Methods = DefineMethods<{
             name: string,
             roleIdsThatCanBeUsedThisEmojiAsReaction: string[]
             }
-        resBody: {}
+        // resBody: {}
     }
 }>

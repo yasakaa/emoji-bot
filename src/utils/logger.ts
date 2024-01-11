@@ -1,4 +1,4 @@
-import { ASCII } from "./ascii";
+import { ASCII } from "./ascii"
 
 // 将来的に良い感じにするかも。
 // 今のところただの console.logのラッパー

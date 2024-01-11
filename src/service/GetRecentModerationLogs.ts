@@ -35,13 +35,13 @@ export class GetRecentModerationLogs {
                     const newModerationLogs = JSON.parse(JSON.stringify(response.body)) as ModerationLog[]
                     untilId = newModerationLogs.pop()?.id
                     // nullとか知らん
-                    newLastModified = new Date(newModerationLogs.pop()?.createdAt!)
+                    newLastModified = new Date(newModerationLogs.pop()!.createdAt)
                     moderationLogs = moderationLogs.concat(newModerationLogs)
                 }
             }).catch( error => {
                 Logger.error(error)
             })
-        } while(newLastModified > lastModified);
+        } while(newLastModified > lastModified)
     
         // 新しいのだけに絞る
         moderationLogs = moderationLogs.filter(l => new Date(l.createdAt) > lastModified)
@@ -50,5 +50,5 @@ export class GetRecentModerationLogs {
         moderationLogs = moderationLogs.reverse()
     
         return moderationLogs
-        }
+    }
 }

@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv'
+import * as dotenv from "dotenv"
 
 // TODO: 後でNamespace で良い感じに整理してあげましょうね
 

@@ -17,7 +17,7 @@ export class Self {
                 return user
             }
             else {
-                Logger.error(`Login failed`)
+                Logger.error("Login failed")
             }
             return undefined
         }).catch( error => {
