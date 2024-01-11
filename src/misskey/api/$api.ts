@@ -2,6 +2,7 @@ import type { AspidaClient } from 'aspida';
 import type { Methods as Methods_rfcdeg } from './admin/emoji/update';
 import type { Methods as Methods_qujrqa } from './admin/show-moderation-logs';
 import type { Methods as Methods_l7cfpj } from './drive/files/create';
+import type { Methods as Methods_ssboix } from './i';
 import type { Methods as Methods_1387vwk } from './notes/create';
 
 const api = <T>({ baseURL, fetch }: AspidaClient<T>) => {
@@ -9,7 +10,8 @@ const api = <T>({ baseURL, fetch }: AspidaClient<T>) => {
   const PATH0 = '/admin/emoji/update';
   const PATH1 = '/admin/show-moderation-logs';
   const PATH2 = '/drive/files/create';
-  const PATH3 = '/notes/create';
+  const PATH3 = '/i';
+  const PATH4 = '/notes/create';
   const POST = 'POST';
 
   return {
@@ -42,13 +44,20 @@ const api = <T>({ baseURL, fetch }: AspidaClient<T>) => {
         },
       },
     },
+    i: {
+      post: (option: { body: Methods_ssboix['post']['reqBody'], config?: T | undefined }) =>
+        fetch<Methods_ssboix['post']['resBody']>(prefix, PATH3, POST, option).json(),
+      $post: (option: { body: Methods_ssboix['post']['reqBody'], config?: T | undefined }) =>
+        fetch<Methods_ssboix['post']['resBody']>(prefix, PATH3, POST, option).json().then(r => r.body),
+      $path: () => `${prefix}${PATH3}`,
+    },
     notes: {
       create: {
         post: (option: { body: Methods_1387vwk['post']['reqBody'], config?: T | undefined }) =>
-          fetch<Methods_1387vwk['post']['resBody']>(prefix, PATH3, POST, option).json(),
+          fetch<Methods_1387vwk['post']['resBody']>(prefix, PATH4, POST, option).json(),
         $post: (option: { body: Methods_1387vwk['post']['reqBody'], config?: T | undefined }) =>
-          fetch<Methods_1387vwk['post']['resBody']>(prefix, PATH3, POST, option).json().then(r => r.body),
-        $path: () => `${prefix}${PATH3}`,
+          fetch<Methods_1387vwk['post']['resBody']>(prefix, PATH4, POST, option).json().then(r => r.body),
+        $path: () => `${prefix}${PATH4}`,
       },
     },
   };

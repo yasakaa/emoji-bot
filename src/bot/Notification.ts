@@ -15,6 +15,8 @@ export class Notification {
     protected createDriveFile: CreateDriveFile
     protected updateEmoji: UpdateEmoji
     protected options: EmojiBotOptions
+
+    protected user?: User
     
     constructor(
         createNote: CreateNote,
@@ -33,7 +35,7 @@ export class Notification {
         const emoji = moderationLog.info.emoji as CustomEmoji
         const user = moderationLog.user as User
 
-        if(user.username != this.options.botName) {
+        if(user.username != this.user?.username) {
             // 絵文字をアップロードしなおす
             if(this.options.isReUpload) {
                 this.reuploadEmoji(emoji)
@@ -59,7 +61,7 @@ export class Notification {
         const before = moderationLog.info.before as CustomEmoji
         const user = moderationLog.user as User
         
-        if(user.username != this.options.botName) {
+        if(user.username != this.user?.username) {
             // 画像のURLが変わっている場合、画像が差し替えられている
             if(after.publicUrl != before.publicUrl) {
                 // 絵文字をアップロードしなおす
@@ -86,7 +88,7 @@ export class Notification {
         const emoji = moderationLog.info.emoji as CustomEmoji
         const user = moderationLog.user as User
         
-        if(user.username != this.options.botName) {
+        if(user.username != this.user?.username) {
             let cw = this.options.useCW.delete ? `カスタム絵文字が削除されたみたい…\n` : null
             let header = this.options.useCW.delete ? "" : `カスタム絵文字が削除されたみたい…\n`
             const message = `${header}\`:${emoji.name}:\` \n\n削除した人：@${user.username}`
@@ -145,7 +147,8 @@ export class Notification {
     }
 
     // モデレーションログを受け取って、それを元に何かしらの処理を実行するメソッド
-    notify(moderationLog: ModerationLog) {
+    notify(moderationLog: ModerationLog, user: User) {
+        this.user = user
         switch(moderationLog.type) {
             case "addCustomEmoji": 
                 this.addCustomEmoji(moderationLog)

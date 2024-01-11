@@ -19,9 +19,6 @@ export type EmojiBotOptions = {
     // 一度に受け取る絵文字の数(APIのデフォルト)
     limit: number,
 
-    // Bot のアカウント名（@を除く）
-    botName: string,
-
     // 送られてきたカスタム絵文字をemoji_bot君が再投稿しなおすかどうか
     isReUpload: boolean,
 
@@ -66,7 +63,6 @@ export function loadEmojiBotOptions(): EmojiBotOptions {
         isDryRun: JSON.parse(process.env.IS_DRY_RUN?.toString() ?? "true") as boolean,
         intervals: parseInt(process.env.INTERVALS ?? "60"),
         limit: parseInt(process.env.API_LIMIT ?? "30"),
-        botName: process.env.BOT_NAME,
         isReUpload: JSON.parse(process.env.IS_REUPLOAD?.toString() ?? "false") as boolean,
         visibility: {
             add: process.env.VISIBILITY_ADD ?? "public",
