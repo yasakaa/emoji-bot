@@ -168,9 +168,10 @@ export class Notification {
     }
 
     protected async reuploadEmoji(emoji: CustomEmoji) {
-        const emoji_file = await axios.get(emoji.publicUrl, {responseType: "arraybuffer"})
-        const buffer = Buffer.from(emoji_file.data)
-        const file = new Blob([buffer.buffer])
+        // TODO: 別メソッドかサービスか何かに分けたほうが良い
+        const response = await axios.get(emoji.publicUrl, {responseType: "arraybuffer"})
+        const content_type = response.headers["content-type"].toString()
+        const file = new Blob([Buffer.from(response.data)], {type: content_type})
 
         if(this.options.isDryRun) {
             Logger.info("isDryRun=true のためドライブにアップしません")
