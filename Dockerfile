@@ -1,7 +1,7 @@
 FROM node:22.9.0-slim
 
 RUN corepack enable
-RUN corepack install pnpm
+RUN corepack install -g pnpm
 
 WORKDIR /emoji-bot
 
